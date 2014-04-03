@@ -12,7 +12,7 @@
 
 using namespace std;
 #define pi 3.14159265358979323846
-#define earthRadiusKm 6371.0
+#define earthRadiusKm 6371000
 
 
 
@@ -99,8 +99,8 @@ class CGPS
     // Add ()
     CGPS & Add (CCoord entry)
     {
-    table.push_back(entry);
-    return *this;
+      table.push_back(entry);
+      return *this;
     }
 
 // This function converts decimal degrees to radians
@@ -112,31 +112,39 @@ double deg2rad(double deg) {
 double rad2deg(double rad) {
   return (rad * 180 / pi);
 };
-    double distanceEarth(double lat1d, double lon1d, double lat2d, double lon2d) {
-  double lat1r, lon1r, lat2r, lon2r, u, v;
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  u = sin(lat2r - lat1r);
-  v = sin(lon2r - lon1r);
-  return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
-}; 
+    
+    double distance(double lat1, double lon1, double lat2, double lon2) {
+    double theta, dist;
+    theta = lon1 - lon2;
+    dist = sin(deg2rad(lat1)) * sin(deg2rad(lat2)) + cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * cos(deg2rad(theta));
+    dist = acos(dist);
+    dist = rad2deg(dist);
+    dist = dist * 60 * 1.1515;
+
+    dist *= 1.609344*1000;
+    return (dist);
+   }
     // Distance () 
-    double Distance()
+   double Distance()
     {
       double d=0;
-      for (unsigned int i=0;i<table.size();i++)
-        for(unsigned int j=i+1;j<table.size();j++)
-        {
+      for (unsigned int i=0;i<table.size()-1;i++)
+      {
+        //cout<<"i="<<i<<endl;
+        //for(unsigned int j=i+1;j<table.size();j++)
+        //{
+        unsigned int j=i+1;
           double lat1=table[i].lat;
           double lon1=table[i].lon;
           double lat2=table[j].lat;
           double lon2=table[j].lon;
-          d+=distanceEarth(lat1,lon1,lat2,lon2);
-        }
+          d+= distance(lat1,lon1,lat2,lon2);
+          //cout<<"distance" <<j <<" "<< i <<"est " <<distance(lat1,lon1,lat2,lon2)<<endl;
+          
+        //}
+      }
         
-        return d*6371.000;
+        return d;
     }
 
 
@@ -223,9 +231,22 @@ double rad2deg(double rad) {
     }
     void operator+=(string entry)
     {
-      double a,b;
-      sequence(entry,a,b);
-      table.push_back(CCoord(a,b));
+      bool deci=false;
+      for (unsigned i=0;i<entry.length() && !deci;i++)
+      {
+        if (entry[i]=='"')
+          deci=true;
+      }
+      if (!deci)
+      {
+        table.push_back(CCoord(entry));
+      }
+      else
+      {
+        double a,b;
+        sequence(entry,a,b);
+        table.push_back(CCoord(a,b));
+      }
     }
     // op []
     CCoord operator[](int i)
@@ -264,20 +285,34 @@ double rad2deg(double rad) {
 
 
 
-
-
 int main()
 {
 double d;
 CGPS x0;
 cout << x0;
-CCoord t=x0 [0];
  // []
-/*
-istringstream tmp2 ( "[(50 6\'16.5\"N, 14 23\'20.25\" E) > (51.5N, 0.0E) > (33.9S, 151.2E) > (37.42190N, 122.08405W) > (0.00N, 50.000W)]" );
-tmp2 >> x1;*/
- // tmp2 . fail () = false
 
- 
+x0 += "(50 6\'16.5\"N, 14 23\'20.25\" E)";
+cout << x0;
+ // [(50 6'16.5"N, 14 23'20.25"E)]
+
+x0 . Add ( CCoord ( "(50.1003781N, 14.3925125E)" ) ) . Add ( CCoord ( 50.084202, 14.423357 ) );
+cout << x0;
+ // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E)]
+
+d = x0 . Distance ();
+ // d = 3373.886483
+
+x0 += "(50.0843122 N, 14.417463E)";
+cout << x0;
+ // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E) > (50 5'3.524"N, 14 25'2.867"E)]
+
+cout << x0;
+ // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E) > (50 5'3.524"N, 14 25'2.867"E)]
+
+d = x0 . Distance ();
+ // d = 3794.598230
+cout<<d<<endl;
 return 0;
+
 }
