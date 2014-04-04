@@ -1,3 +1,4 @@
+#ifndef __PROGTEST__
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,8 +10,10 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-
 using namespace std;
+#endif /* __PROGTEST__ */
+
+
 #define pi 3.14159265358979323846
 #define earthRadiusKm 6371000
 
@@ -328,16 +331,17 @@ double rad2deg(double rad) {
       }
     }
     // op []
-    CCoord operator[](int i)
+    CCoord operator[](unsigned int i)
     {
-      //if (i>table.size || i<0)  cerr <<"myDataFormatException";
+      if (i>table.size()-1 /*|| i<0*/)     throw string("error");
       return table[i];
     }
     // op ()
-    CGPS operator()(int a,int b)
+    CGPS operator()(unsigned int a,unsigned int b)
     {
+      if (a>table.size()-1 /*|| a<0 || b<0 */|| b>table.size()-1)     throw string("error");
       CGPS x0;
-      for (int i=a;i<=b;i++)
+      for (unsigned int i=a;i<=b;i++)
         x0.table.push_back(table[i]);
       return x0;
     }
@@ -416,8 +420,8 @@ double rad2deg(double rad) {
           if (deci(str))
           {
             bool test=checksyntaxdec(str,a,b);
-            cout<<str<<endl;
-            cout<<a<<endl;
+            //cout<<str<<endl;
+            //cout<<a<<endl;
             if (test)
               v.push_back(CCoord(a,b));
             else
@@ -439,26 +443,54 @@ double rad2deg(double rad) {
       }
       return cond;
     }
-    std::istream& operator >>(std::istream &is, Tablepoint &t)
+
+    std::string gulp(std::istream &in)
+{
+    std::string ret;
+    char buffer[4096];
+    while (in.read(buffer, sizeof(buffer)))
+        ret.append(buffer, sizeof(buffer));
+    ret.append(buffer, in.gcount());
+    return ret;
+}
+
+    friend std::istream& operator>>(std::istream & is, CGPS & rhs)
     {
-    //
+    string str=rhs.gulp(is);
+    vector<CCoord> v;
+    cout<<str<<endl;
+    bool test= rhs.testeur(str, v);
+    if (test)
+    {
+      for (unsigned int i=0;i<v.size();i++)
+        rhs . Add (v[i]);
+    }
+    else
+    {
+      is.setstate(std::ios::failbit);
+    }
     return is;
     }
 
+
+
+
+
     vector<CCoord> table;
+
  };
 
-
+/*
 
 int main()
 {
-double a,b;
+double d;
 CGPS x0;
-string test="[(50 6\'16.5\"N, 14 23\'20.25\"E)]";
-vector<CCoord> v;
-bool autre=x0.testeur(test,v);
-cout<<v[0]<<endl;
-
+CGPS x1;
+istringstream tmp4 ( "[(51.5N, 0.0E) > (33.9S, 151.2E) > (37.42190N, 122.08405W) > (10.00N, 50.000W)]" );
+tmp4 >> x1;
+cout<<x1;
+cout<<tmp4.fail()<<endl;
 return 0;
 
-}
+}*/
