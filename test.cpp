@@ -21,7 +21,7 @@ class CCoord
    public:
        CCoord ( double lat, double lon ) {this->lat=lat; this->lon=lon;this->data=conversion (lat,lon);}
        CCoord ( string entry ) { conversion(entry,lat,lon); this->data=conversion(lat,lon);}
-       double lat,lon;
+       double lat,lon,deg1,min1,sec1,deg2,min2,seg2;
        string data;
        string conversion (double lat1,double lon1)
        {
@@ -79,6 +79,12 @@ class CCoord
        }
 
     // output op <<
+    friend ostream &operator<<( ostream &output, 
+                                       const CCoord &t )
+      { 
+        output<<t.data;
+         return output;            
+      }
     // todo
  };
 
@@ -229,6 +235,79 @@ double rad2deg(double rad) {
       else pos=-1;
       b=pos2 *(stringtodouble(deg2)+stringtodouble(minut2) /60 +stringtodouble(sec2)/60/60);
     }
+    bool checksyntaxmin(string entry,double &a, double &b)
+    {
+      string deg1="";
+      unsigned int i=1;
+      while (i<entry.length() && entry[i]<='9' && entry[i]>='0')
+      {
+        deg1+=entry[i];
+        i++;
+      }
+      string minut1="";
+      while (i<entry.length() && entry[i]==' ')
+      {
+        i++;
+      }
+      while (i<entry.length() && entry[i]<='9' && entry[i]>='0')
+      {
+        minut1+=entry[i];
+        i++;
+      }
+      string sec1="";
+      while (i<entry.length() && !(entry[i]<='9' && entry[i]>='0'))
+      {
+        i++;
+      }
+      while (i<entry.length() && ((entry[i]<='9' && entry[i]>='0')|| entry[i]=='.') )
+      {
+        sec1+=entry[i];
+        i++;
+      }
+      while(i<entry.length() && entry[i]!=',')
+        i++;
+      int pos;
+      if (entry[i-1]=='N') pos=1;
+      else pos=-1;
+      a=pos *(stringtodouble(deg1)+stringtodouble(minut1) /60 +stringtodouble(sec1)/60/60);
+      i++;
+      i++;
+      string deg2="";
+            while (i<entry.length() && entry[i]<='9' && entry[i]>='0')
+      {
+        deg2+=entry[i];
+        i++;
+
+      }
+      string minut2="";
+      while (i<entry.length() && entry[i]==' ')
+      {
+        i++;
+      }
+      while (i<entry.length() && entry[i]<='9' && entry[i]>='0')
+      {
+        minut2+=entry[i];
+        i++;
+      }
+      string sec2="";
+      while (i<entry.length() && !(entry[i]<='9' && entry[i]>='0'))
+      {
+        i++;
+      }
+      while (i<entry.length() && ((entry[i]<='9' && entry[i]>='0')|| entry[i]=='.') )
+      {
+        sec2+=entry[i];
+        i++;
+      }
+      while(i<entry.length() && entry[i]!=',')
+        i++;
+      int pos2=1;
+      if (entry[i-1]=='E') pos=1;
+      else pos=-1;
+      b=pos2 *(stringtodouble(deg2)+stringtodouble(minut2) /60 +stringtodouble(sec2)/60/60);
+      if (a>89 || b>179) return false;
+          else return true;
+    }
     void operator+=(string entry)
     {
       bool deci=false;
@@ -279,7 +358,93 @@ double rad2deg(double rad) {
          return output;            
       }
     // op >>
-    // todo
+
+    bool checksyntaxdec(string entry,double &lat1, double &lon1)
+    {
+          unsigned int i=1;
+          string lat2="";
+          double polat=-1;
+          while (i<entry.length() &&((entry[i]<='9' && entry[i]>='0') || entry[i]=='.'))
+            {
+              lat2+=entry[i];
+              i++;
+            }
+          while (i<entry.length() && (entry[i]!='S' && entry[i]!='N'))
+            i++;
+          if (entry[i]=='N') polat=1;
+          while (i<entry.length() && !(entry[i]>='0' && entry[i]<='9'))
+            i++;
+          string lon2="";
+          double polon=-1;
+          while (i<entry.length() &&((entry[i]<='9' && entry[i]>='0') || entry[i]=='.'))
+            {
+              lon2+=entry[i];
+              i++;
+            }
+          while (i<entry.length() && entry[i]!='E' && entry[i]!='W')
+            i++;
+          if (entry[i]=='E') polon=1;
+          lat1=(stringtodouble(lat2))*polat;
+          lon1=(stringtodouble(lon2))*polon;
+
+          if (lat1>89 || lon1>179) return false;
+          else return true;
+    }
+
+    bool deci(string entry)
+    {
+      unsigned int i=0;
+      while (i<entry.length() && entry[i]!='"')
+        i++;
+      if (i>=entry.length()-1)
+        return true;
+      return false;
+    }
+    bool testeur (string entry, vector<CCoord> &v)
+    {
+      double a,b;
+      string str="";
+      bool cond=true;
+      for (unsigned int i=0;i<entry.length();i++)
+      {
+        if (entry[i]=='(')
+          str="";
+        if (entry[i]==')')
+        {
+          str+=')';
+          cout<<str<<endl;
+          if (deci(str))
+          {
+            bool test=checksyntaxdec(str,a,b);
+            cout<<str<<endl;
+            cout<<a<<endl;
+            if (test)
+              v.push_back(CCoord(a,b));
+            else
+              cond=false;
+          }
+          else
+          {
+            bool test2=checksyntaxmin(str,a,b);
+            if (test2)
+              v.push_back(CCoord(a,b));
+            else
+              cond=false;
+          }
+        }
+        else
+        {
+          str+=entry[i];
+        }
+      }
+      return cond;
+    }
+    std::istream& operator >>(std::istream &is, Tablepoint &t)
+    {
+    //
+    return is;
+    }
+
     vector<CCoord> table;
  };
 
@@ -287,32 +452,13 @@ double rad2deg(double rad) {
 
 int main()
 {
-double d;
+double a,b;
 CGPS x0;
-cout << x0;
- // []
+string test="[(50 6\'16.5\"N, 14 23\'20.25\"E)]";
+vector<CCoord> v;
+bool autre=x0.testeur(test,v);
+cout<<v[0]<<endl;
 
-x0 += "(50 6\'16.5\"N, 14 23\'20.25\" E)";
-cout << x0;
- // [(50 6'16.5"N, 14 23'20.25"E)]
-
-x0 . Add ( CCoord ( "(50.1003781N, 14.3925125E)" ) ) . Add ( CCoord ( 50.084202, 14.423357 ) );
-cout << x0;
- // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E)]
-
-d = x0 . Distance ();
- // d = 3373.886483
-
-x0 += "(50.0843122 N, 14.417463E)";
-cout << x0;
- // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E) > (50 5'3.524"N, 14 25'2.867"E)]
-
-cout << x0;
- // [(50 6'16.5"N, 14 23'20.25"E) > (50 6'1.361"N, 14 23'33.045"E) > (50 5'3.127"N, 14 25'24.085"E) > (50 5'3.524"N, 14 25'2.867"E)]
-
-d = x0 . Distance ();
- // d = 3794.598230
-cout<<d<<endl;
 return 0;
 
 }
